@@ -1,0 +1,35 @@
+{
+  "name": "@opticast/scanner",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "eas-build-post-install": "cd ../../ && node tools/scripts/eas-build-post-install.mjs . packages/scanner"
+  },
+  "nx": {
+    "name": "scanner"
+  },
+  "dependencies": {
+    "@expo/metro": "~56.0.0",
+    "@expo/vector-icons": "~15.1.0",
+    "@opticast/protocol": "*",
+    "@testing-library/react-native": "*",
+    "expo": "~56.0.0",
+    "expo-audio": "~56.0.13",
+    "expo-camera": "~56.0.8",
+    "expo-dev-client": "~56.0.24",
+    "expo-file-system": "~56.0.9",
+    "expo-image": "~56.0.11",
+    "expo-media-library": "~56.0.10",
+    "expo-sharing": "~56.0.24",
+    "expo-splash-screen": "~56.0.10",
+    "expo-status-bar": "~56.0.4",
+    "expo-system-ui": "~56.0.5",
+    "expo-video": "~56.1.4",
+    "jest-expo": "~56.0.0",
+    "react": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-svg": "15.15.4",
+    "react-native-svg-transformer": "~1.5.1",
+    "react-native-web": "~0.21.0"
+  }
+}
