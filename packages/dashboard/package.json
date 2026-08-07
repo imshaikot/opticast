@@ -1,0 +1,13 @@
+{
+  "name": "@opticast/dashboard",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "dashboard"
+  },
+  "dependencies": {
+    "@opticast/protocol": "*",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}
