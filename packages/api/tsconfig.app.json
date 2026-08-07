@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Deliberately not `dist`: that directory belongs to the esbuild bundle,
+    // and esbuild clears it. Sharing it would leave `tsc` believing its
+    // declarations are up to date after they had been wiped.
+    "outDir": "out-tsc/app",
+    "types": ["node"],
+    "rootDir": "src",
+    "tsBuildInfoFile": "out-tsc/app/tsconfig.app.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts", "out-tsc", "dist"],
+  "references": [{ "path": "../protocol/tsconfig.lib.json" }]
+}

@@ -1,0 +1,131 @@
+{
+  "name": "@opticast/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "api",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "platform": "node",
+          "outputPath": "packages/api/dist",
+          "format": [
+            "esm"
+          ],
+          "bundle": true,
+          "main": "packages/api/src/main.ts",
+          "tsConfig": "packages/api/tsconfig.app.json",
+          "assets": [
+            "packages/api/src/assets"
+          ],
+          "external": [
+            "express",
+            "cors",
+            "multer",
+            "qrcode",
+            "file-type",
+            "ffmpeg-static"
+          ],
+          "esbuildOptions": {
+            "sourcemap": true,
+            "outExtension": {
+              ".js": ".js"
+            },
+            "banner": {
+              "js": "import{createRequire as __createRequire}from'node:module';const require=__createRequire(import.meta.url);"
+            }
+          }
+        },
+        "configurations": {
+          "development": {},
+          "production": {
+            "esbuildOptions": {
+              "sourcemap": false,
+              "outExtension": {
+                ".js": ".js"
+              },
+              "banner": {
+                "js": "import{createRequire as __createRequire}from'node:module';const require=__createRequire(import.meta.url);"
+              }
+            }
+          }
+        }
+      },
+      "prune-lockfile": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "executor": "@nx/js:prune-lockfile",
+        "outputs": [
+          "{workspaceRoot}/packages/api/dist/package.json",
+          "{workspaceRoot}/packages/api/dist/yarn.lock"
+        ],
+        "options": {
+          "buildTarget": "build"
+        }
+      },
+      "copy-workspace-modules": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "outputs": [
+          "{workspaceRoot}/packages/api/dist/workspace_modules"
+        ],
+        "executor": "@nx/js:copy-workspace-modules",
+        "options": {
+          "buildTarget": "build"
+        }
+      },
+      "prune": {
+        "dependsOn": [
+          "prune-lockfile",
+          "copy-workspace-modules"
+        ],
+        "executor": "nx:noop"
+      },
+      "serve": {
+        "continuous": true,
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "api:build",
+          "runBuildTargetDependencies": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "api:build:development"
+          },
+          "production": {
+            "buildTarget": "api:build:production"
+          }
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@opticast/protocol": "*",
+    "cors": "^2.8.6",
+    "express": "^5.1.0",
+    "ffmpeg-static": "^5.3.0",
+    "file-type": "^22.0.1",
+    "multer": "^2.2.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/multer": "^2.2.0",
+    "@types/qrcode": "^1.5.6",
+    "jsqr": "^1.4.0"
+  }
+}
