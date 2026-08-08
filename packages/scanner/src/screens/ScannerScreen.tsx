@@ -120,6 +120,7 @@ export function ScannerScreen({
         width: thickness,
         opacity: breath,
       }}
+      live={!done}
       preview={
         <>
           <CameraView

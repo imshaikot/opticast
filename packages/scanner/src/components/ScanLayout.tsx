@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Animated, SafeAreaView, StyleSheet, View } from 'react-native';
 
 import { raised, sunken, theme } from '../theme';
+import { CrtOverlay } from './CrtOverlay';
 
 interface FrameBorder {
   color: string;
@@ -14,6 +15,8 @@ interface Props {
   border: FrameBorder;
   /** Fills the screen edge-to-edge, clipped to the glass corners. */
   preview: ReactNode;
+  /** Runs the CRT sweep. On while the camera is capturing, off otherwise. */
+  live?: boolean;
   /** The bottom panel: metadata, progress, actions. */
   children: ReactNode;
 }
@@ -29,16 +32,21 @@ interface Props {
  * sunk into it. Only the glass keeps a radius; a CRT had one and nothing else
  * in this app does.
  */
-const GLASS_RADIUS = 6;
+const GLASS_RADIUS = 14;
 
-export function ScanLayout({ border, preview, children }: Props) {
+export function ScanLayout({ border, preview, live, children }: Props) {
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.previewArea}>
         <View style={[styles.bezel, raised]}>
           <View style={[styles.glassWell, sunken]}>
             <View style={styles.frame}>
-              <View style={styles.clip}>{preview}</View>
+              {/* Inside the clip, so the scanlines and vignette are cut to
+                  the glass corners rather than running under the bezel. */}
+              <View style={styles.clip}>
+                {preview}
+                <CrtOverlay live={live} />
+              </View>
               {/* Drawn over the clip, not on it: a growing borderWidth would
                   otherwise push the preview content inward. */}
               <Animated.View
