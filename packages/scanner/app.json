@@ -47,6 +47,13 @@
           "backgroundColor": "#1d1408"
         }
       ],
+      [
+        "expo-dev-launcher",
+        {
+          "launchMode": "most-recent",
+          "defaultLaunchURL": "http://192.168.50.108:8081"
+        }
+      ],
       "expo-sharing",
       "expo-image",
       "expo-video",
