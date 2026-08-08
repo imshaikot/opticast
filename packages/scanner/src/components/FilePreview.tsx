@@ -1,10 +1,11 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import type { ReceivedFile } from '../lib/receivedFile';
-import { formatDuration, theme } from '../theme';
+import { fonts, formatDuration, theme } from '../theme';
+import { Key } from './Chassis';
 
 /** Each player is its own component: the player hooks cannot be conditional. */
 export function FilePreview({ file }: { file: ReceivedFile }) {
@@ -13,8 +14,10 @@ export function FilePreview({ file }: { file: ReceivedFile }) {
   if (file.kind === 'audio') return <AudioPreview file={file} />;
   return (
     <View style={styles.placeholder}>
-      <Text style={styles.placeholderIcon}>📄</Text>
-      <Text style={styles.placeholderText}>No inline preview for {file.mime}</Text>
+      <Text style={styles.placeholderIcon}>▤</Text>
+      <Text style={styles.placeholderText}>
+        No inline preview for {file.mime}
+      </Text>
     </View>
   );
 }
@@ -43,15 +46,13 @@ function AudioPreview({ file }: { file: ReceivedFile }) {
 
   return (
     <View style={styles.audio}>
-      <Text style={styles.audioIcon}>🎵</Text>
-      <Pressable
-        style={styles.audioButton}
+      <Text style={styles.audioIcon}>♪</Text>
+      <Key
+        compact
+        label={status.playing ? '❚❚ Pause' : '▶ Play'}
         onPress={() => (status.playing ? player.pause() : player.play())}
-      >
-        <Text style={styles.audioButtonText}>
-          {status.playing ? '⏸ Pause' : '▶ Play'}
-        </Text>
-      </Pressable>
+        style={styles.audioButton}
+      />
       <Text style={styles.audioTime}>
         {formatDuration(status.currentTime)} / {formatDuration(status.duration)}
       </Text>
@@ -60,49 +61,52 @@ function AudioPreview({ file }: { file: ReceivedFile }) {
 }
 
 // Every branch fills whatever container it is given; the scan frame owns the
-// size and the rounded clipping.
+// size and the glass clipping. Text here sits on the dark screen, so it is
+// drawn in phosphor rather than the case inks.
 const styles = StyleSheet.create({
   media: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#000',
+    backgroundColor: theme.screen,
   },
   placeholder: {
     flex: 1,
-    backgroundColor: theme.panel,
+    backgroundColor: theme.screen,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 12,
+    padding: 20,
   },
   placeholderIcon: {
-    fontSize: 44,
+    fontSize: 40,
+    lineHeight: 46,
+    color: theme.phosphor,
   },
   placeholderText: {
-    color: theme.muted,
-    fontSize: 13,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: theme.phosphor,
+    textAlign: 'center',
   },
   audio: {
     flex: 1,
-    backgroundColor: theme.panel2,
+    backgroundColor: theme.screen,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 12,
   },
   audioIcon: {
-    fontSize: 30,
+    fontSize: 34,
+    lineHeight: 40,
+    color: theme.phosphor,
   },
   audioButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 22,
-    borderRadius: 999,
-    backgroundColor: theme.accent,
-  },
-  audioButtonText: {
-    color: '#fff',
-    fontWeight: '700',
+    minWidth: 128,
   },
   audioTime: {
-    color: theme.muted,
+    fontFamily: fonts.body,
     fontSize: 12,
+    color: theme.phosphor,
   },
 });

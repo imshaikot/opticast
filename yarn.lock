@@ -3659,6 +3659,7 @@ __metadata:
     expo-camera: "npm:~56.0.8"
     expo-dev-client: "npm:~56.0.24"
     expo-file-system: "npm:~56.0.9"
+    expo-font: "npm:~56.0.7"
     expo-image: "npm:~56.0.11"
     expo-media-library: "npm:~56.0.10"
     expo-sharing: "npm:~56.0.24"

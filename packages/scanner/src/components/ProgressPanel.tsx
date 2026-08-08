@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { ScanProgress } from '../hooks/useStreamAssembler';
-import { formatBytes, theme } from '../theme';
+import { fonts, glow, formatBytes, theme } from '../theme';
+import { Meter, type as type_, Window } from './Chassis';
 
 interface Props {
   progress: ScanProgress;
@@ -28,7 +29,7 @@ export function ProgressPanel({ progress }: Props) {
 
   if (warning) {
     return (
-      <View style={styles.panel}>
+      <Window title="FAULT">
         <Text style={styles.title} numberOfLines={2}>
           Cannot read this stream
         </Text>
@@ -37,15 +38,15 @@ export function ProgressPanel({ progress }: Props) {
           {progress.stats.scans.toLocaleString()} barcodes seen ·{' '}
           {progress.stats.ignored.toLocaleString()} unrecognised
         </Text>
-      </View>
+      </Window>
     );
   }
 
   if (!known) {
     return (
-      <View style={[styles.panel, styles.panelCentered]}>
+      <Window title="SEARCHING" bodyStyle={styles.centeredBody}>
         <Text style={styles.searching}>Looking for a stream…</Text>
-      </View>
+      </Window>
     );
   }
 
@@ -53,29 +54,21 @@ export function ProgressPanel({ progress }: Props) {
   const percent = Math.min(Math.round(progress.ratio * 100), 100);
 
   return (
-    <View style={styles.panel}>
+    <Window title="STREAM">
       <Text style={styles.title} numberOfLines={1}>
         {metadata.file.name}
       </Text>
       <Text style={styles.meta}>
         {formatBytes(metadata.file.size)} · {metadata.file.mime}
-        {metadata.encryption ? ' · 🔒 PIN protected' : ''}
+        {metadata.encryption ? ' · PIN' : ''}
       </Text>
 
       <View style={styles.progressRow}>
-        <View style={styles.track}>
-          <View
-            style={[
-              styles.fill,
-              {
-                width: `${percent}%`,
-                backgroundColor: done ? theme.ok : theme.accent,
-              },
-            ]}
-          />
+        <View style={styles.meterWrap}>
+          <Meter ratio={progress.ratio} tone={done ? theme.ok : theme.accent} />
         </View>
         <Text style={[styles.percent, done && styles.percentDone]}>
-          {done ? '✓' : `${percent}%`}
+          {done ? 'OK' : `${percent}%`}
         </Text>
       </View>
 
@@ -95,79 +88,66 @@ export function ProgressPanel({ progress }: Props) {
             : ''}
         </Text>
       )}
-    </View>
+    </Window>
   );
 }
 
 const styles = StyleSheet.create({
-  panel: {
-    backgroundColor: theme.panel,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.border,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    gap: 4,
-  },
-  panelCentered: {
+  centeredBody: {
     alignItems: 'center',
+    paddingVertical: 22,
   },
   title: {
-    color: theme.text,
+    fontFamily: fonts.bodyBold,
     fontSize: 15,
-    fontWeight: '600',
+    color: theme.cream,
   },
   meta: {
-    color: theme.muted,
-    fontSize: 13,
+    ...type_.muted,
+    marginTop: 3,
   },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 10,
+    gap: 11,
+    marginTop: 12,
   },
-  track: {
+  meterWrap: {
     flex: 1,
-    height: 6,
-    backgroundColor: theme.panel2,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 999,
   },
   percent: {
-    color: theme.text,
-    fontSize: 17,
-    fontWeight: '700',
-    minWidth: 44,
+    fontFamily: fonts.display,
+    fontSize: 11,
+    lineHeight: 16,
+    color: theme.cream,
+    ...glow,
+    minWidth: 46,
     textAlign: 'right',
-    fontVariant: ['tabular-nums'],
   },
   percentDone: {
     color: theme.ok,
   },
   frames: {
-    color: theme.muted,
-    fontSize: 12,
-    marginTop: 2,
+    ...type_.muted,
+    marginTop: 8,
   },
   searching: {
-    color: theme.text,
-    fontSize: 14,
-    fontWeight: '500',
-    opacity: 0.9,
+    fontFamily: fonts.bodySemi,
+    fontSize: 13,
+    color: theme.cream,
   },
   footnote: {
-    color: theme.muted,
+    fontFamily: fonts.body,
     fontSize: 11,
-    marginTop: 6,
+    lineHeight: 16,
+    color: theme.inkSoft,
+    marginTop: 7,
   },
   warning: {
-    color: theme.warn,
-    fontSize: 13,
+    fontFamily: fonts.body,
+    fontSize: 12,
     lineHeight: 18,
+    color: theme.warn,
+    marginTop: 5,
   },
 });

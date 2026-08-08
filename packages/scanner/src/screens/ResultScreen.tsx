@@ -1,7 +1,8 @@
 import type { StreamMetadata } from '@opticast/protocol';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Key, Led, type as type_, Window } from '../components/Chassis';
 import { FilePreview } from '../components/FilePreview';
 import { ScanLayout } from '../components/ScanLayout';
 import {
@@ -9,7 +10,7 @@ import {
   type ReceivedFile,
   type SaveOutcome,
 } from '../lib/receivedFile';
-import { formatBytes, formatDuration, theme } from '../theme';
+import { fonts, formatBytes, formatDuration, theme } from '../theme';
 
 interface Props {
   file: ReceivedFile;
@@ -57,7 +58,7 @@ export function ResultScreen({
 
   return (
     <ScanLayout
-      border={{ color: theme.ok, width: 3 }}
+      border={{ color: theme.led, width: 3 }}
       preview={<FilePreview file={file} />}
     >
       <ScrollView
@@ -65,57 +66,61 @@ export function ResultScreen({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.successRow}>
-          <Text style={styles.successIcon}>✅</Text>
-          <View style={styles.successText}>
+        <Window title="RECEIVED">
+          <View style={styles.successRow}>
+            <Led on color={theme.led} />
             <Text style={styles.title} numberOfLines={1}>
               {file.name}
             </Text>
-            <Text style={styles.subtitle}>
-              Checksum verified{metadata.encryption ? ' · decrypted' : ''}
-            </Text>
           </View>
-        </View>
-
-        <Text style={styles.meta}>
-          {formatBytes(file.size)} · {file.mime}
-        </Text>
-        <Text style={styles.meta}>{detailParts.join(' · ')}</Text>
-        <Text style={styles.hash} numberOfLines={1}>
-          sha256 {metadata.file.sha256}
-        </Text>
-
-        {outcome && (
-          <Text
-            style={[
-              styles.outcome,
-              outcome.status === 'failed' && styles.outcomeError,
-            ]}
-          >
-            {OUTCOME_TEXT[outcome.status]}
-            {outcome.status === 'failed' ? `: ${outcome.message}` : ''}
+          <Text style={styles.subtitle}>
+            CHECKSUM VERIFIED{metadata.encryption ? ' · DECRYPTED' : ''}
           </Text>
-        )}
 
-        <View style={styles.actions}>
-          <Pressable
-            style={[styles.primary, saving && styles.disabled]}
-            onPress={handleSave}
-            disabled={saving}
-          >
-            <Text style={styles.primaryText}>
-              {saving ? 'Saving…' : 'Save file'}
+          <Text style={styles.meta}>
+            {formatBytes(file.size)} · {file.mime}
+          </Text>
+          <Text style={styles.meta}>{detailParts.join(' · ')}</Text>
+          <Text style={styles.hash} numberOfLines={1}>
+            sha256 {metadata.file.sha256}
+          </Text>
+
+          {outcome && (
+            <Text
+              style={[
+                styles.outcome,
+                outcome.status === 'failed' && styles.outcomeError,
+              ]}
+            >
+              {OUTCOME_TEXT[outcome.status]}
+              {outcome.status === 'failed' ? `: ${outcome.message}` : ''}
             </Text>
-          </Pressable>
-          <View style={styles.actionRow}>
-            <Pressable style={styles.ghost} onPress={onScanAnother}>
-              <Text style={styles.ghostText}>Scan another</Text>
-            </Pressable>
-            <Pressable style={styles.ghost} onPress={onDiscard}>
-              <Text style={[styles.ghostText, styles.danger]}>Discard</Text>
-            </Pressable>
+          )}
+
+          <View style={styles.actions}>
+            <Key
+              label={saving ? 'Saving…' : 'Save File'}
+              tone="primary"
+              onPress={handleSave}
+              disabled={saving}
+            />
+            <View style={styles.actionRow}>
+              <Key
+                compact
+                label="Scan Another"
+                onPress={onScanAnother}
+                style={styles.actionHalf}
+              />
+              <Key
+                compact
+                tone="danger"
+                label="Discard"
+                onPress={onDiscard}
+                style={styles.actionHalf}
+              />
+            </View>
           </View>
-        </View>
+        </Window>
       </ScrollView>
     </ScanLayout>
   );
@@ -126,81 +131,55 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: 8,
     paddingBottom: 16,
   },
   successRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  successIcon: {
-    fontSize: 24,
-  },
-  successText: {
-    flex: 1,
+    gap: 9,
   },
   title: {
-    color: theme.text,
-    fontSize: 17,
-    fontWeight: '700',
+    flex: 1,
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: theme.cream,
   },
   subtitle: {
+    fontFamily: fonts.display,
+    fontSize: 8,
+    lineHeight: 13,
+    letterSpacing: 0.4,
     color: theme.ok,
-    fontSize: 13,
-    marginTop: 2,
+    marginTop: 7,
   },
   meta: {
-    color: theme.muted,
-    fontSize: 13,
+    ...type_.muted,
+    marginTop: 5,
   },
   hash: {
-    color: theme.muted,
+    fontFamily: fonts.body,
     fontSize: 10,
-    fontFamily: 'Courier',
+    color: theme.inkSoft,
+    marginTop: 5,
   },
   outcome: {
+    fontFamily: fonts.bodySemi,
+    fontSize: 12,
     color: theme.ok,
-    fontSize: 13,
+    marginTop: 9,
   },
   outcomeError: {
     color: theme.danger,
   },
   actions: {
-    gap: 10,
-    marginTop: 8,
-  },
-  primary: {
-    backgroundColor: theme.accent,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  primaryText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
+    gap: 9,
+    marginTop: 14,
   },
   actionRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 9,
   },
-  ghost: {
+  actionHalf: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 10,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  ghostText: {
-    color: theme.muted,
-    fontWeight: '600',
-  },
-  danger: {
-    color: theme.danger,
-  },
-  disabled: {
-    opacity: 0.5,
   },
 });

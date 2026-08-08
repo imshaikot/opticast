@@ -1,18 +1,12 @@
 import { CameraView, type BarcodeScanningResult } from 'expo-camera';
 import { useEffect, useRef } from 'react';
-import {
-  Animated,
-  Easing,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
+import { Key, Led } from '../components/Chassis';
 import { ProgressPanel } from '../components/ProgressPanel';
 import { ScanLayout } from '../components/ScanLayout';
 import type { ScanProgress } from '../hooks/useStreamAssembler';
-import { theme } from '../theme';
+import { fonts, glow, raised, theme } from '../theme';
 
 interface Props {
   progress: ScanProgress;
@@ -122,7 +116,7 @@ export function ScannerScreen({
   return (
     <ScanLayout
       border={{
-        color: done ? theme.ok : theme.accent,
+        color: done ? theme.ok : theme.signal,
         width: thickness,
         opacity: breath,
       }}
@@ -139,16 +133,12 @@ export function ScannerScreen({
             style={[styles.flash, { opacity: flash }]}
           />
           {(capturing || done) && (
-            <View style={styles.statusPill} pointerEvents="none">
-              <Animated.View
-                style={[
-                  styles.dot,
-                  done && styles.dotDone,
-                  { opacity: done ? 1 : dotPulse },
-                ]}
-              />
+            <View style={[styles.statusTag, raised]} pointerEvents="none">
+              <Animated.View style={{ opacity: done ? 1 : dotPulse }}>
+                <Led on color={done ? theme.led : theme.signal} />
+              </Animated.View>
               <Text style={styles.statusText}>
-                {done ? 'Captured' : 'Capturing'}
+                {done ? 'CAPTURED' : 'CAPTURING'}
               </Text>
             </View>
           )}
@@ -156,26 +146,29 @@ export function ScannerScreen({
       }
     >
       <View style={styles.headerRow}>
-        <Pressable style={styles.close} onPress={onCancel} hitSlop={10}>
-          <Text style={styles.closeText}>✕</Text>
-        </Pressable>
+        <Key compact label="Stop" onPress={onCancel} style={styles.headerKey} />
         {needsPin && !pinReady && (
-          <Pressable
-            style={[styles.chip, styles.chipAccent]}
+          <Key
+            compact
+            tone="primary"
+            label="Enter PIN"
             onPress={onEnterPin}
-          >
-            <Text style={styles.chipText}>🔒 Enter PIN</Text>
-          </Pressable>
+            style={styles.headerKey}
+          />
         )}
         {needsPin && pinReady && (
-          <View style={[styles.chip, styles.chipOk]}>
-            <Text style={styles.chipText}>🔓 PIN set</Text>
+          <View style={[styles.pinSet, raised]}>
+            <Led on />
+            <Text style={styles.pinSetText}>PIN SET</Text>
           </View>
         )}
       </View>
 
       <ProgressPanel progress={progress} />
 
+      {/* Plain, not another window: it sits directly under the SEARCHING
+          readout and a second frame around one line of advice reads as two
+          instruments disagreeing about whose job it is. */}
       {searching && (
         <Text style={styles.hint}>Point your camera at the playing video</Text>
       )}
@@ -190,79 +183,57 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: theme.accent,
+    backgroundColor: theme.signal,
   },
-  statusPill: {
+  /* A little plate riveted to the glass, so it reads as part of the machine
+     rather than as an overlay drawn by software. */
+  statusTag: {
     position: 'absolute',
-    top: 14,
-    right: 14,
+    top: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    paddingVertical: 7,
-    paddingHorizontal: 13,
-    borderRadius: 999,
-    backgroundColor: 'rgba(15,17,21,0.75)',
-    borderWidth: 1,
-    borderColor: theme.border,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.accent,
-  },
-  dotDone: {
-    backgroundColor: theme.ok,
+    paddingVertical: 6,
+    paddingHorizontal: 9,
+    backgroundColor: theme.plate,
   },
   statusText: {
-    color: theme.text,
-    fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.display,
+    fontSize: 8,
+    lineHeight: 12,
+    letterSpacing: 0.4,
+    color: theme.cream,
+    ...glow,
   },
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    gap: 10,
+    marginBottom: 12,
   },
-  close: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: theme.panel,
-    borderWidth: 1,
-    borderColor: theme.border,
+  headerKey: {
+    minWidth: 92,
+  },
+  pinSet: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 7,
+    paddingVertical: 9,
+    paddingHorizontal: 11,
+    backgroundColor: theme.plate,
   },
-  closeText: {
-    color: theme.text,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  chip: {
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    backgroundColor: theme.panel,
-    borderWidth: 1,
-    borderColor: theme.border,
-  },
-  chipAccent: {
-    borderColor: theme.accent,
-  },
-  chipOk: {
-    borderColor: theme.ok,
-  },
-  chipText: {
-    color: theme.text,
-    fontSize: 13,
-    fontWeight: '600',
+  pinSetText: {
+    fontFamily: fonts.display,
+    fontSize: 8,
+    lineHeight: 12,
+    color: theme.cream,
   },
   hint: {
-    color: theme.muted,
-    fontSize: 13,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: theme.inkSoft,
     textAlign: 'center',
     marginTop: 14,
   },

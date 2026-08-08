@@ -1,16 +1,17 @@
 import { WrongPinError, type StreamMetadata } from '@opticast/protocol';
 import { useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { Key, Led, type as type_, Window } from '../components/Chassis';
 import { PinPrompt } from '../components/PinPrompt';
 import { ScanLayout } from '../components/ScanLayout';
 import { useStreamAssembler } from '../hooks/useStreamAssembler';
@@ -23,7 +24,7 @@ import {
 import { FilesScreen } from '../screens/FilesScreen';
 import { ResultScreen } from '../screens/ResultScreen';
 import { ScannerScreen } from '../screens/ScannerScreen';
-import { theme } from '../theme';
+import { fonts, glow, sunken, theme } from '../theme';
 
 type Phase =
   | 'idle'
@@ -36,6 +37,14 @@ type Phase =
   | 'error';
 
 export function App() {
+  // Keys must match `fonts` in theme.ts — that is what every style points at.
+  const [fontsLoaded] = useFonts({
+    [fonts.display]: require('../../assets/fonts/PressStart2P-Regular.ttf'),
+    [fonts.body]: require('../../assets/fonts/IBMPlexMono-Regular.ttf'),
+    [fonts.bodySemi]: require('../../assets/fonts/IBMPlexMono-SemiBold.ttf'),
+    [fonts.bodyBold]: require('../../assets/fonts/IBMPlexMono-Bold.ttf'),
+  });
+
   const [permission, requestPermission] = useCameraPermissions();
   const { progress, ingest, finalize, reset } = useStreamAssembler();
 
@@ -164,6 +173,10 @@ export function App() {
     startOver();
   }, [permission, requestPermission, startOver]);
 
+  // After every hook, so the hook order never changes. Bare case colour rather
+  // than a boot message: the fonts it would be set in are the missing thing.
+  if (!fontsLoaded) return <View style={styles.boot} />;
+
   if (showFiles) {
     return (
       <View style={styles.root}>
@@ -209,12 +222,12 @@ export function App() {
           border={{ color: theme.ok, width: 3 }}
           preview={
             <View style={styles.busyPreview}>
-              <ActivityIndicator size="large" color={theme.accent} />
+              <ActivityIndicator size="large" color={theme.phosphor} />
             </View>
           }
         >
           <Text style={styles.busyTitle}>
-            {progress.metadata?.encryption ? 'Decrypting…' : 'Verifying…'}
+            {progress.metadata?.encryption ? 'DECRYPTING…' : 'VERIFYING…'}
           </Text>
           <Text style={styles.busySubtitle}>
             {progress.metadata?.encryption
@@ -224,34 +237,44 @@ export function App() {
         </ScanLayout>
       ) : (
         <SafeAreaView style={styles.centered}>
-          <Text style={styles.logo}>▦</Text>
-          <Text style={styles.title}>opticast</Text>
-          <Text style={styles.tagline}>
-            Point the camera at a barcode video to pull the file back out of it.
-          </Text>
+          <Window title="OPTICAST" style={styles.console}>
+            <View style={[styles.screen, sunken]}>
+              <Text style={styles.screenGlyph}>▦</Text>
+              <Text style={styles.screenTitle}>OPTICAST</Text>
+              <Text style={styles.screenSub}>OPTICAL TRANSPORT</Text>
+            </View>
 
-          {phase === 'error' && failure && (
-            <Text style={styles.error}>{failure}</Text>
-          )}
-
-          {permission && !permission.granted && !permission.canAskAgain && (
-            <Text style={styles.error}>
-              Camera access is off. Enable it in Settings to scan.
+            <Text style={styles.tagline}>
+              Point the camera at a barcode video to pull the file back out of
+              it.
             </Text>
-          )}
 
-          <Pressable style={styles.cta} onPress={beginScanning}>
-            <Text style={styles.ctaText}>
-              {phase === 'error' ? 'Try again' : 'Capture a File'}
-            </Text>
-          </Pressable>
+            {phase === 'error' && failure && (
+              <Text style={styles.error}>{failure}</Text>
+            )}
 
-          <Pressable
-            style={styles.secondary}
-            onPress={() => setShowFiles(true)}
-          >
-            <Text style={styles.secondaryText}>Manage Files</Text>
-          </Pressable>
+            {permission && !permission.granted && !permission.canAskAgain && (
+              <Text style={styles.error}>
+                Camera access is off. Enable it in Settings to scan.
+              </Text>
+            )}
+
+            <View style={styles.keys}>
+              <Key
+                label={phase === 'error' ? 'Try Again' : 'Capture a File'}
+                tone="primary"
+                onPress={beginScanning}
+              />
+              <Key label="Manage Files" onPress={() => setShowFiles(true)} />
+            </View>
+          </Window>
+
+          <View style={styles.nameplate}>
+            <Led on />
+            <Text style={styles.nameplateText}>POWER</Text>
+            <View style={styles.nameplateSpacer} />
+            <Text style={styles.nameplateText}>MODEL OC-1</Text>
+          </View>
         </SafeAreaView>
       )}
 
@@ -271,62 +294,84 @@ export function App() {
 }
 
 const styles = StyleSheet.create({
+  boot: {
+    flex: 1,
+    backgroundColor: theme.case,
+  },
   root: {
     flex: 1,
-    backgroundColor: theme.bg,
+    backgroundColor: theme.case,
   },
   centered: {
     flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    gap: 12,
+  },
+  console: {
+    alignSelf: 'stretch',
+  },
+  screen: {
+    backgroundColor: theme.screen,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 28,
-    gap: 10,
+    paddingVertical: 26,
+    gap: 8,
   },
-  logo: {
-    fontSize: 46,
-    color: theme.accent,
+  screenGlyph: {
+    fontSize: 34,
+    lineHeight: 40,
+    color: theme.phosphor,
+    ...glow,
   },
-  title: {
-    color: theme.text,
-    fontSize: 24,
-    fontWeight: '700',
+  screenTitle: {
+    fontFamily: fonts.display,
+    fontSize: 17,
+    lineHeight: 24,
+    letterSpacing: 1,
+    color: theme.phosphor,
+    ...glow,
+    textShadowRadius: 12,
+  },
+  screenSub: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: theme.ink,
+    opacity: 0.8,
   },
   tagline: {
-    color: theme.muted,
-    fontSize: 14,
+    ...type_.muted,
+    marginTop: 14,
     textAlign: 'center',
-    maxWidth: 300,
   },
   error: {
+    fontFamily: fonts.bodySemi,
+    fontSize: 12,
+    lineHeight: 17,
     color: theme.danger,
-    fontSize: 13,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 10,
   },
-  cta: {
-    marginTop: 18,
-    backgroundColor: theme.accent,
-    paddingVertical: 14,
-    paddingHorizontal: 34,
-    borderRadius: 999,
+  keys: {
+    marginTop: 16,
+    gap: 10,
   },
-  ctaText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
+  nameplate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 4,
   },
-  secondary: {
-    marginTop: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 34,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: theme.border,
+  nameplateSpacer: {
+    flex: 1,
   },
-  secondaryText: {
-    color: theme.muted,
-    fontWeight: '600',
-    fontSize: 14,
+  nameplateText: {
+    fontFamily: fonts.display,
+    fontSize: 7,
+    lineHeight: 12,
+    letterSpacing: 0.5,
+    color: theme.inkSoft,
   },
   busyPreview: {
     flex: 1,
@@ -334,14 +379,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   busyTitle: {
-    color: theme.text,
-    fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.display,
+    fontSize: 12,
+    lineHeight: 18,
+    color: theme.cream,
+    ...glow,
   },
   busySubtitle: {
-    color: theme.muted,
-    fontSize: 13,
-    marginTop: 6,
+    ...type_.muted,
+    marginTop: 8,
   },
 });
 
