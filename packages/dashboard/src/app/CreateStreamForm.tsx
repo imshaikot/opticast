@@ -107,18 +107,19 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
     !file || submitting || payloadTooLarge || fileTooLarge || pinInvalid;
 
   return (
-    <form className="panel" onSubmit={handleSubmit}>
-      <h2>New stream</h2>
+    <form className="frame panel" onSubmit={handleSubmit}>
+      <span className="frame-title">New stream</span>
+      <span className="frame-tag">Upload</span>
 
       <label className="field">
-        <span>File</span>
+        <span className="field-label">File</span>
         <input
           ref={fileInputRef}
           type="file"
           onChange={(event) => setFile(event.target.files?.[0] ?? null)}
         />
         {file && (
-          <small className={fileTooLarge ? 'warn' : 'muted'}>
+          <small className={`hint${fileTooLarge ? ' warn' : ''}`}>
             {file.name} · {formatBytes(file.size)}
             {fileTooLarge && ` — over the ${formatBytes(maxUpload)} limit`}
           </small>
@@ -126,7 +127,7 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
       </label>
 
       <label className="field">
-        <span>PIN</span>
+        <span className="field-label">PIN</span>
         <input
           type="password"
           value={pin}
@@ -134,7 +135,7 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
           onChange={(event) => setPin(event.target.value)}
           autoComplete="off"
         />
-        <small className={pinInvalid ? 'warn' : 'muted'}>
+        <small className={`hint${pinInvalid ? ' warn' : ''}`}>
           {pinInvalid
             ? 'PIN must be 4-32 characters'
             : pin
@@ -145,7 +146,7 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
 
       <div className="grid">
         <label className="field">
-          <span>Width (px)</span>
+          <span className="field-label">Width (px)</span>
           <input
             type="number"
             min={64}
@@ -157,7 +158,7 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
         </label>
 
         <label className="field">
-          <span>Frames per second</span>
+          <span className="field-label">Frames per second</span>
           <input
             type="number"
             min={1}
@@ -168,7 +169,7 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
         </label>
 
         <label className="field">
-          <span>Payload bytes / frame</span>
+          <span className="field-label">Payload bytes / frame</span>
           <input
             type="number"
             min={1}
@@ -176,29 +177,31 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
             value={config.payloadBytes}
             onChange={(e) => set('payloadBytes', Number(e.target.value))}
           />
-          <small className={payloadTooLarge ? 'warn' : 'muted'}>
+          <small className={`hint${payloadTooLarge ? ' warn' : ''}`}>
             Max {maxPayload} at EC {config.ec}. Higher is faster but harder to scan.
           </small>
         </label>
 
         <label className="field">
-          <span>Error correction</span>
-          <select
-            value={config.ec}
-            onChange={(e) => set('ec', e.target.value as EcLevel)}
-          >
-            {EC_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {level}
-                {level === 'L' ? ' — most data' : ''}
-                {level === 'H' ? ' — most robust' : ''}
-              </option>
-            ))}
-          </select>
+          <span className="field-label">Error correction</span>
+          <span className="select">
+            <select
+              value={config.ec}
+              onChange={(e) => set('ec', e.target.value as EcLevel)}
+            >
+              {EC_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                  {level === 'L' ? ' — most data' : ''}
+                  {level === 'H' ? ' — most robust' : ''}
+                </option>
+              ))}
+            </select>
+          </span>
         </label>
 
         <label className="field">
-          <span>Quiet zone (modules)</span>
+          <span className="field-label">Quiet zone (modules)</span>
           <input
             type="number"
             min={0}
@@ -209,7 +212,7 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
         </label>
 
         <label className="field">
-          <span>Repeat metadata every</span>
+          <span className="field-label">Repeat metadata every</span>
           <input
             type="number"
             min={0}
@@ -217,13 +220,13 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
             value={config.metadataRepeatEvery}
             onChange={(e) => set('metadataRepeatEvery', Number(e.target.value))}
           />
-          <small className="muted">
+          <small className="hint">
             0 disables. Lets a scanner join mid-playback.
           </small>
         </label>
 
         <label className="field">
-          <span>Hold each frame for</span>
+          <span className="field-label">Hold each frame for</span>
           <input
             type="number"
             min={1}
@@ -231,22 +234,24 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
             value={config.frameRepeat}
             onChange={(e) => set('frameRepeat', Number(e.target.value))}
           />
-          <small className="muted">Video frames. Raise for slow cameras.</small>
+          <small className="hint">Video frames. Raise for slow cameras.</small>
         </label>
 
         <label className="field">
-          <span>Barcodes per frame</span>
-          <select
-            value={config.tile}
-            onChange={(e) => set('tile', Number(e.target.value))}
-          >
-            {[1, 2, 3, 4].map((n) => (
-              <option key={n} value={n}>
-                {n === 1 ? '1 — single code' : `${n * n} — ${n}×${n} grid`}
-              </option>
-            ))}
-          </select>
-          <small className={codeTooSmall ? 'warn' : 'muted'}>
+          <span className="field-label">Barcodes per frame</span>
+          <span className="select">
+            <select
+              value={config.tile}
+              onChange={(e) => set('tile', Number(e.target.value))}
+            >
+              {[1, 2, 3, 4].map((n) => (
+                <option key={n} value={n}>
+                  {n === 1 ? '1 — single code' : `${n * n} — ${n}×${n} grid`}
+                </option>
+              ))}
+            </select>
+          </span>
+          <small className={`hint${codeTooSmall ? ' warn' : ''}`}>
             {Math.floor(config.width / config.tile)}px per code.
             {codeTooSmall
               ? ' Below ~480px codes start failing at any distance.'
@@ -255,15 +260,17 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
         </label>
 
         <label className="field">
-          <span>Coding</span>
-          <select
-            value={config.coding}
-            onChange={(e) => set('coding', e.target.value as Coding)}
-          >
-            <option value="fountain">Fountain — scans in one pass</option>
-            <option value="plain">Plain — shortest video</option>
-          </select>
-          <small className="muted">
+          <span className="field-label">Coding</span>
+          <span className="select">
+            <select
+              value={config.coding}
+              onChange={(e) => set('coding', e.target.value as Coding)}
+            >
+              <option value="fountain">Fountain — scans in one pass</option>
+              <option value="plain">Plain — shortest video</option>
+            </select>
+          </span>
+          <small className="hint">
             Fountain frames are interchangeable, so a scan stops as soon as it
             has enough of them instead of hunting the last few.
           </small>
@@ -271,7 +278,7 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
 
         {config.coding === 'fountain' && (
           <label className="field">
-            <span>Redundancy</span>
+            <span className="field-label">Redundancy</span>
             <input
               type="number"
               min={1}
@@ -280,7 +287,7 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
               value={config.redundancy}
               onChange={(e) => set('redundancy', Number(e.target.value))}
             />
-            <small className={redundancyRaised ? 'warn' : 'muted'}>
+            <small className={`hint${redundancyRaised ? ' warn' : ''}`}>
               {redundancyRaised
                 ? `Raised to ${floorRedundancy.toFixed(2)} — below that this many blocks may never decode.`
                 : 'Symbols rendered per source block. Higher survives a worse camera.'}
@@ -289,15 +296,17 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
         )}
 
         <label className="field">
-          <span>Frame order</span>
-          <select
-            value={config.order}
-            onChange={(e) => set('order', e.target.value as FrameOrder)}
-          >
-            <option value="sequential">Sequential — file order</option>
-            <option value="interleaved">Interleaved — shuffled</option>
-          </select>
-          <small className="muted">
+          <span className="field-label">Frame order</span>
+          <span className="select">
+            <select
+              value={config.order}
+              onChange={(e) => set('order', e.target.value as FrameOrder)}
+            >
+              <option value="sequential">Sequential — file order</option>
+              <option value="interleaved">Interleaved — shuffled</option>
+            </select>
+          </span>
+          <small className="hint">
             Shuffling does not reduce the number of passes a scan needs — it
             only relabels which frames a pass misses. Sequential keeps gaps
             contiguous, so you can seek back to them.
@@ -336,8 +345,8 @@ export function CreateStreamForm({ capabilities, onCreated }: Props) {
 
       {error && <p className="error">{error}</p>}
 
-      <button type="submit" disabled={blocked}>
-        {submitting ? 'Uploading…' : 'Create stream'}
+      <button type="submit" className="block" disabled={blocked}>
+        {submitting ? '▮ Uploading…' : '▶ Create stream'}
       </button>
     </form>
   );

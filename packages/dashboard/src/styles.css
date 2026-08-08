@@ -1,15 +1,35 @@
+/*
+ * opticast dashboard — amber phosphor CRT.
+ *
+ * Two faces do all the work: a pixel display face for anything that is a
+ * label, and a terminal face for anything that is data. User-supplied strings
+ * (filenames, MIME types, errors) are never uppercased — they are shown as
+ * they are, because the point of the column is to say what the file is called.
+ *
+ * Everything is hard-edged on purpose: no border radius, no blurred shadows,
+ * no easing that a 1983 monitor could not have done. The only soft thing in
+ * the palette is the phosphor bloom, which is a text-shadow and also what
+ * makes the thin terminal face read as bold.
+ */
+
 :root {
-  --bg: #0f1115;
-  --panel: #171a21;
-  --panel-2: #1e222b;
-  --border: #2a2f3a;
-  --text: #e6e8ee;
-  --muted: #9aa1ae;
-  --accent: #5b8cff;
-  --ok: #3ecf8e;
-  --warn: #e8b339;
-  --danger: #f2637e;
-  --radius: 10px;
+  --font-display: 'Press Start 2P', ui-monospace, 'Courier New', monospace;
+  --font-term: 'VT323', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Amber P3 phosphor, dark to hot. */
+  --void: #0b0904;
+  --panel: #151107;
+  --well: #0d0a04;
+  --amber: #ffb43a;
+  --amber-hot: #ffe6b0;
+  --amber-line: #a9741f;
+  --amber-edge: #6d4a12;
+  --muted: #bd934c;
+  --danger: #ff5f3d;
+  --bloom: rgba(255, 180, 58, 0.35);
+
+  --scan: 3px;
+
   color-scheme: dark;
 }
 
@@ -19,36 +39,313 @@
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--void);
+  color: var(--amber);
+  font: 19px/1.35 var(--font-term);
+  text-shadow: 0 0 1px currentColor, 0 0 8px var(--bloom);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Screen curvature is a lie we can't tell in CSS, so settle for the glow. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(255, 180, 58, 0.06) 0%,
+    transparent 55%
+  );
+}
+
+/* Scanlines. Subtle enough to read through, present enough to notice. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.22) 0 1px,
+    transparent 1px var(--scan)
+  );
+}
+
+::selection {
+  background: var(--amber);
+  color: var(--void);
+  text-shadow: none;
+}
+
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--void);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--amber-edge);
+  border: 3px solid var(--void);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--amber-line);
 }
 
 .app {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 32px 24px 64px;
+  padding: 18px 24px 72px;
 }
 
-.masthead h1 {
-  margin: 0 0 4px;
-  font-size: 26px;
-  letter-spacing: -0.02em;
+/* ---- type ---- */
+
+h1,
+h2,
+h3,
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
 }
 
-.masthead p {
+.muted {
+  color: var(--muted);
+  font-size: 17px;
+}
+
+.warn {
+  color: var(--amber-hot);
+  font-size: 17px;
+}
+
+.mono {
+  font-family: var(--font-term);
+  letter-spacing: 0.04em;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 17px;
+  margin: 8px 0 0;
+  text-shadow: 0 0 6px rgba(255, 95, 61, 0.45);
+}
+
+code {
+  font-family: var(--font-term);
+  background: var(--amber);
+  color: var(--void);
+  padding: 0 5px;
+  text-shadow: none;
+}
+
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.caret {
+  font-weight: 400;
+  animation: blink 1.06s steps(1) infinite;
+}
+
+/* ---- the byte frame ----
+ * Outer rule is the border, inner rule is ::before, corner rivets are ::after,
+ * and .frame-title masks a notch out of both rules to sit in the gap.
+ */
+
+.frame {
+  position: relative;
+  background: var(--panel);
+  border: 2px solid var(--amber-line);
+  padding: 26px 20px 20px;
+  box-shadow: 7px 7px 0 rgba(0, 0, 0, 0.55);
+}
+
+.frame::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid var(--amber-edge);
+  pointer-events: none;
+}
+
+.frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(var(--amber-line), var(--amber-line)),
+    linear-gradient(var(--amber-line), var(--amber-line)),
+    linear-gradient(var(--amber-line), var(--amber-line)),
+    linear-gradient(var(--amber-line), var(--amber-line));
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  background-position: 3px 3px, calc(100% - 3px) 3px, 3px calc(100% - 3px),
+    calc(100% - 3px) calc(100% - 3px);
+}
+
+.frame-title {
+  position: absolute;
+  top: -8px;
+  left: 16px;
+  padding: 0 9px;
+  background: var(--panel);
+  font-family: var(--font-display);
+  font-size: 10px;
+  line-height: 16px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber-hot);
+  white-space: nowrap;
+  max-width: calc(100% - 44px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.frame-tag {
+  position: absolute;
+  top: -8px;
+  right: 16px;
+  padding: 0 9px;
+  background: var(--panel);
+  font-family: var(--font-display);
+  font-size: 9px;
+  line-height: 16px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Block-dash divider, the kind a loading bar is made of. */
+.rule {
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--amber-line) 0 7px,
+    transparent 7px 14px
+  );
+}
+
+/* ---- system bar ---- */
+
+.sysbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 2px solid var(--amber-line);
+  background: var(--panel);
+  padding: 7px 12px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.sysbar b {
+  color: var(--amber-hot);
+  font-weight: 400;
+}
+
+.sysbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.led {
+  width: 9px;
+  height: 9px;
+  background: var(--amber-edge);
+  box-shadow: 0 0 6px transparent;
+}
+
+.led-on {
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber);
+  animation: blink 0.7s steps(1) infinite;
+}
+
+/* ---- masthead ---- */
+
+.masthead {
+  padding: 34px 2px 22px;
+}
+
+.logo {
   margin: 0;
+  font-size: 40px;
+  letter-spacing: 0.04em;
+  color: var(--amber-hot);
+  /* Hard offset shadow first, bloom second — 8-bit title screen order. */
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6), 0 0 14px var(--bloom);
 }
+
+@media (max-width: 640px) {
+  .logo {
+    font-size: 24px;
+  }
+}
+
+.tagline {
+  margin: 16px 0 18px;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 20px;
+  letter-spacing: 0.02em;
+}
+
+.alert {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 18px;
+  border: 2px solid var(--danger);
+  background: rgba(255, 95, 61, 0.07);
+  padding: 12px 14px;
+}
+
+.alert-tag {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  background: var(--danger);
+  color: var(--void);
+  padding: 5px 7px;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.alert p {
+  margin: 2px 0 0;
+  color: var(--amber-hot);
+}
+
+/* ---- layout ---- */
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(320px, 400px) 1fr;
-  gap: 24px;
+  grid-template-columns: minmax(330px, 420px) 1fr;
+  gap: 30px;
   align-items: start;
-  margin-top: 28px;
+  margin-top: 26px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 940px) {
   .layout {
     grid-template-columns: 1fr;
   }
@@ -58,260 +355,622 @@ body {
   }
 }
 
-h2 {
-  font-size: 15px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin: 0 0 14px;
-}
-
-h3 {
-  margin: 0;
-  font-size: 16px;
-  word-break: break-word;
-}
-
-.muted {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.warn {
-  color: var(--warn);
-  font-size: 13px;
-}
-
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-}
-
-.error {
-  color: var(--danger);
-  font-size: 13px;
-  margin: 8px 0 0;
-}
-
-/* ---- panel / form ---- */
-
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
   position: sticky;
-  top: 24px;
+  top: 20px;
 }
 
-.field {
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: var(--amber-hot);
+}
+
+.section-head .count {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+.streams {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-bottom: 14px;
+  gap: 22px;
 }
 
-.field > span {
-  font-size: 12px;
-  font-weight: 600;
+.streams > .rule {
+  margin-bottom: 4px;
+}
+
+/* Terminal-style status line, for empty and loading states. */
+.readout {
+  margin: 4px 0;
   color: var(--muted);
+}
+
+.readout::before {
+  content: '> ';
+  color: var(--amber);
+}
+
+/* ---- form ---- */
+
+.field {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  line-height: 1.45;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--amber);
+}
+
+/* Two lines' worth, so a label that wraps does not push its own control
+ * out of line with the one beside it in the other column. */
+.grid .field-label {
+  min-height: 2.9em;
+}
+
+.hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 17px;
+  line-height: 1.25;
+  color: var(--muted);
+}
+
+.hint.warn {
+  color: var(--amber-hot);
 }
 
 input,
 select {
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 7px;
-  padding: 8px 10px;
-  font: inherit;
+  background: var(--well);
+  border: 2px solid var(--amber-edge);
+  color: var(--amber-hot);
+  padding: 7px 10px;
+  font: 19px/1.2 var(--font-term);
+  letter-spacing: 0.03em;
   width: 100%;
+  text-shadow: 0 0 1px currentColor;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.65);
 }
 
-input[type='file'] {
-  padding: 7px;
-  font-size: 13px;
+input::placeholder {
+  color: var(--amber-edge);
 }
 
 input:focus,
 select:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
+  outline: none;
+  border-color: var(--amber);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--amber),
+    0 0 14px var(--bloom);
+}
+
+/* Native spinners render off-palette; arrow keys still step the value. */
+input[type='number'] {
+  appearance: textfield;
+}
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+input[type='file'] {
+  padding: 6px;
+  font-size: 17px;
+  color: var(--muted);
+}
+
+input[type='file']::file-selector-button {
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--amber-line);
+  color: var(--void);
+  border: 0;
+  padding: 8px 10px;
+  margin-right: 10px;
+  cursor: pointer;
+  text-shadow: none;
+}
+
+input[type='file']:hover::file-selector-button {
+  background: var(--amber);
+}
+
+.select {
+  display: block;
+  position: relative;
+}
+
+.select::after {
+  content: '▼';
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--amber);
+  pointer-events: none;
+}
+
+.select select {
+  appearance: none;
+  padding-right: 30px;
+  cursor: pointer;
+}
+
+option {
+  background: var(--panel);
+  color: var(--amber-hot);
 }
 
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0 12px;
+  gap: 0 14px;
 }
+
+/* ---- buttons ---- */
+
+button {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--amber);
+  color: var(--void);
+  border: 2px solid var(--void);
+  padding: 12px 15px;
+  cursor: pointer;
+  text-shadow: none;
+  box-shadow: 0 0 0 2px var(--amber), 4px 4px 0 rgba(0, 0, 0, 0.55);
+}
+
+button:hover:not(:disabled) {
+  background: var(--amber-hot);
+  box-shadow: 0 0 0 2px var(--amber-hot), 4px 4px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* Physical key travel: the button moves onto its own shadow. */
+button:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 2px var(--amber-hot), 1px 1px 0 rgba(0, 0, 0, 0.55);
+}
+
+button.block {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--amber);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--amber-line);
+}
+
+button.ghost:hover:not(:disabled) {
+  background: transparent;
+  color: var(--amber-hot);
+  box-shadow: 0 0 0 2px var(--amber-hot);
+}
+
+button.danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--danger);
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--void);
+  box-shadow: 0 0 0 2px var(--danger);
+}
+
+/*
+ * Last, and naming each variant, because `button.danger` and `button:disabled`
+ * have identical specificity — source order is the only thing deciding which
+ * wins. With this above the variants, a Delete button mid-encode rendered as a
+ * live control while the click did nothing.
+ */
+button:disabled,
+button.ghost:disabled,
+button.danger:disabled,
+button.key-toggle:disabled {
+  background: transparent;
+  color: var(--amber-line);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--amber-edge);
+  cursor: not-allowed;
+}
+
+/* ---- projection readout ---- */
 
 .estimate {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 6px 0 18px;
   padding: 12px 10px;
-  margin: 4px 0 14px;
+  background: var(--well);
+  border: 1px solid var(--amber-edge);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.7);
+}
+
+.estimate div {
+  border: 1px dotted var(--amber-edge);
+  padding: 8px 4px;
   text-align: center;
 }
 
 .estimate strong {
   display: block;
-  font-size: 14px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--amber-hot);
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .estimate span {
-  font-size: 10px;
-  color: var(--muted);
+  display: block;
+  margin-top: 5px;
+  font-size: 15px;
+  line-height: 1.15;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-button {
-  background: var(--accent);
-  border: none;
-  color: #fff;
-  border-radius: 7px;
-  padding: 9px 16px;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-button.danger {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--danger);
-  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--muted);
 }
 
 /* ---- stream cards ---- */
 
-.streams {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-}
-
-.card header {
+.card-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: 14px;
 }
 
-.card header p {
-  margin: 3px 0 0;
+/* Filenames are user data — shown verbatim, never uppercased. */
+.card-name {
+  margin: 0;
+  font-family: var(--font-term);
+  font-size: 25px;
+  line-height: 1.1;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: var(--amber-hot);
+  word-break: break-word;
 }
 
+.card-meta {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 17px;
+  word-break: break-word;
+}
+
+/* Inverse video, the way a monochrome terminal showed a selected field. */
 .badge {
-  font-size: 11px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
+  padding: 6px 8px;
   white-space: nowrap;
+  background: var(--amber-edge);
+  color: var(--void);
+  text-shadow: none;
 }
 
 .badge-ready {
-  color: var(--ok);
-  border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+  background: var(--amber-hot);
 }
 
 .badge-failed {
-  color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  background: var(--danger);
 }
 
 .badge-encoding,
 .badge-queued {
-  color: var(--warn);
-  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+  background: var(--amber);
+  animation: blink 1.4s steps(1) infinite;
 }
 
 .progress {
-  margin-top: 12px;
+  margin-top: 16px;
 }
 
-.progress-bar {
-  height: 6px;
-  background: var(--panel-2);
-  border-radius: 999px;
-  overflow: hidden;
+/* Segmented bar — discrete cells that light up, not a smooth fill. */
+.meter {
+  height: 16px;
+  padding: 2px;
+  background: var(--well);
+  border: 2px solid var(--amber-edge);
 }
 
-.progress-bar span {
+.meter span {
   display: block;
   height: 100%;
-  background: var(--accent);
-  transition: width 0.3s ease;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--amber) 0 7px,
+    transparent 7px 10px
+  );
+  box-shadow: 0 0 8px var(--bloom);
+  transition: width 0.3s steps(12);
+}
+
+.progress small {
+  display: block;
+  margin-top: 7px;
+  font-size: 17px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 10px;
-  margin: 14px 0;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 10px 12px;
+  margin: 18px 0;
+}
+
+.stats > div {
+  border-left: 2px solid var(--amber-edge);
+  padding-left: 9px;
+}
+
+/* The QR line is three values joined; give it two cells instead of wrapping. */
+.stats > .wide {
+  grid-column: span 2;
 }
 
 .stats dt {
-  font-size: 10px;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: var(--muted);
 }
 
 .stats dd {
-  margin: 2px 0 0;
-  font-size: 13px;
+  margin: 6px 0 0;
+  font-size: 19px;
+  color: var(--amber-hot);
+  word-break: break-word;
 }
 
-.player {
-  width: 100%;
-  border-radius: 8px;
-  background: #000;
-  margin-top: 4px;
-  display: block;
+/* Hashes are long and fixed-width; give them room rather than a wrapped tail. */
+.stats dd.mono {
+  font-size: 17px;
+  letter-spacing: 0;
 }
 
-.card footer {
+/* ---- player deck ---- */
+
+.crt {
+  margin-top: 6px;
+  padding: 9px;
+  background: var(--well);
+  border: 2px solid var(--amber-line);
+  box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.8);
+}
+
+.crt-head {
   display: flex;
-  gap: 12px;
   align-items: center;
-  margin-top: 14px;
+  gap: 9px;
+  margin-bottom: 9px;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.crt-head-tag {
+  margin-left: auto;
+  color: var(--muted);
+  text-transform: none;
+}
+
+.crt-screen {
+  border: 2px solid var(--amber-edge);
+  background: #000;
+  line-height: 0;
+
+  /*
+   * Above the page's scanline and glow overlays (z-index 9998/9999).
+   *
+   * This is the one surface on the page a phone camera is pointed at — the
+   * whole purpose of the player is that the barcodes get filmed off it. Any
+   * overlay lowers white-module luminance and lays a periodic pattern over
+   * the module grid, which is exactly what stops a QR symbol decoding. The
+   * bezel dresses the frame; nothing is allowed on top of the picture.
+   */
+  position: relative;
+  z-index: 10000;
+}
+
+.crt-screen video {
+  display: block;
+  width: 100%;
+}
+
+.transport {
+  margin-top: 9px;
+}
+
+.transport-track {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.transport-keys {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 9px;
+}
+
+.key {
+  padding: 9px 11px;
+  font-size: 9px;
+}
+
+.key .glyph {
+  /* The pixel face has no transport symbols; borrow them from the platform. */
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.key-toggle {
+  background: transparent;
+  color: var(--amber-line);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--amber-edge);
+}
+
+.key-toggle.on {
+  background: var(--amber);
+  color: var(--void);
+  box-shadow: 0 0 0 2px var(--amber), 4px 4px 0 rgba(0, 0, 0, 0.55);
+}
+
+.clock {
+  font-family: var(--font-term);
+  font-size: 19px;
+  letter-spacing: 0.04em;
+  color: var(--amber-hot);
+  white-space: nowrap;
+}
+
+/* Segmented scrubber: the fill is a run of lit cells, not a smooth bar. */
+.scrub {
+  appearance: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 20px;
+  padding: 0;
+  background-color: var(--well);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--amber) 0 7px,
+    transparent 7px 10px
+  );
+  background-size: var(--fill, 0%) 100%;
+  background-repeat: no-repeat;
+  border: 2px solid var(--amber-edge);
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.scrub:focus {
+  outline: none;
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber), 0 0 14px var(--bloom);
+}
+
+.scrub::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+}
+
+.scrub::-webkit-slider-thumb {
+  appearance: none;
+  width: 8px;
+  height: 16px;
+  background: var(--amber-hot);
+  border: 0;
+  border-radius: 0;
+  box-shadow: 0 0 8px var(--bloom);
+}
+
+.scrub::-moz-range-track {
+  height: 100%;
+  background: transparent;
+}
+
+.scrub::-moz-range-thumb {
+  width: 8px;
+  height: 16px;
+  background: var(--amber-hot);
+  border: 0;
+  border-radius: 0;
+}
+
+.card-foot {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 18px;
 }
 
 .link {
-  color: var(--accent);
-  font-size: 13px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
   text-decoration: none;
+  padding: 12px 0;
 }
 
 .link:hover {
+  color: var(--amber-hot);
   text-decoration: underline;
 }
 
-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: var(--panel-2);
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-size: 12px;
+.link::before {
+  content: '[ ';
+}
+
+.link::after {
+  content: ' ]';
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret,
+  .led-on,
+  .badge-encoding,
+  .badge-queued {
+    animation: none;
+  }
+
+  .meter span,
+  button {
+    transition: none;
+  }
 }

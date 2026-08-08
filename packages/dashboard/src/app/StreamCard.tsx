@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { deleteStream, videoUrl } from './api';
 import { formatBytes, formatDuration, formatTimestamp } from './format';
+import { RetroPlayer } from './RetroPlayer';
 
 interface Props {
   stream: StreamRecord;
@@ -39,27 +40,27 @@ export function StreamCard({ stream, onChanged }: Props) {
   }
 
   return (
-    <article className={`card status-${stream.status}`}>
-      <header>
+    <article className={`frame card status-${stream.status}`}>
+      <span className="frame-title">STREAM {stream.id.slice(0, 8)}</span>
+      <span className="frame-tag">{stream.encrypted ? 'AES-256' : 'NO PIN'}</span>
+
+      <header className="card-head">
         <div>
-          <h3>{stream.originalName}</h3>
-          <p className="muted">
+          <h3 className="card-name">{stream.originalName}</h3>
+          <p className="card-meta">
             {formatBytes(stream.originalSize)} · {stream.mime} ·{' '}
             {formatTimestamp(stream.createdAt)}
           </p>
         </div>
-        <span className={`badge badge-${stream.status}`}>
-          {stream.encrypted ? '🔒 ' : ''}
-          {stream.status}
-        </span>
+        <span className={`badge badge-${stream.status}`}>{stream.status}</span>
       </header>
 
       {inFlight && (
         <div className="progress">
-          <div className="progress-bar">
+          <div className="meter">
             <span style={{ width: `${Math.round(stream.progress.ratio * 100)}%` }} />
           </div>
-          <small className="muted">
+          <small>
             {STAGE_LABELS[stream.progress.stage] ?? stream.progress.stage}
             {stream.progress.framesTotal > 0 &&
               ` — frame ${stream.progress.framesRendered.toLocaleString()} of ${stream.progress.framesTotal.toLocaleString()}`}
@@ -90,7 +91,7 @@ export function StreamCard({ stream, onChanged }: Props) {
               <dt>Per frame</dt>
               <dd>{stream.metadata.transport.payloadBytes} B</dd>
             </div>
-            <div>
+            <div className="wide">
               <dt>QR</dt>
               <dd>
                 {stream.config.width}px · EC {stream.metadata.transport.ec} ·{' '}
@@ -104,13 +105,9 @@ export function StreamCard({ stream, onChanged }: Props) {
           </dl>
 
           {showPlayer ? (
-            <video
-              className="player"
+            <RetroPlayer
               src={videoUrl(stream.id)}
-              controls
-              autoPlay
-              loop
-              playsInline
+              label={`${stream.config.width}px · ${stream.metadata.transport.fps} fps`}
             />
           ) : (
             <button type="button" onClick={() => setShowPlayer(true)}>
@@ -122,7 +119,7 @@ export function StreamCard({ stream, onChanged }: Props) {
 
       {error && <p className="error">{error}</p>}
 
-      <footer>
+      <footer className="card-foot">
         {stream.status === 'ready' && (
           <a className="link" href={videoUrl(stream.id)} download={`${stream.id}.mp4`}>
             Download mp4

@@ -55,19 +55,44 @@ export function App() {
     };
   }, [refresh]);
 
+  const encoding = streams.some(
+    (stream) => stream.status === 'queued' || stream.status === 'encoding'
+  );
+
   return (
     <div className="app">
+      <div className="sysbar">
+        <b>OPTICAST</b>
+        <span>//</span>
+        <span>OPTICAL TRANSPORT SYSTEM</span>
+        <span className="sysbar-right">
+          <i className={`led${encoding ? ' led-on' : ''}`} />
+          <span>{encoding ? 'ENCODING' : 'IDLE'}</span>
+          <span>·</span>
+          <span>
+            {streams.length} STREAM{streams.length === 1 ? '' : 'S'}
+          </span>
+        </span>
+      </div>
+
       <header className="masthead">
-        <h1>opticast</h1>
-        <p className="muted">
+        <h1 className="logo">
+          OPTICAST
+          <span className="caret">_</span>
+        </h1>
+        <p className="tagline">
           Encode any file into a video of encrypted 2D barcodes, then scan it back
           with the phone app.
         </p>
+        <div className="rule" />
         {capabilities && !capabilities.ffmpegAvailable && (
-          <p className="error">
-            ffmpeg was not found on the server — encoding will fail. Install it or
-            set <code>FFMPEG_PATH</code>.
-          </p>
+          <div className="alert">
+            <span className="alert-tag">! FAULT</span>
+            <p>
+              ffmpeg was not found on the server — encoding will fail. Install it
+              or set <code>FFMPEG_PATH</code>.
+            </p>
+          </div>
         )}
       </header>
 
@@ -75,11 +100,22 @@ export function App() {
         <CreateStreamForm capabilities={capabilities} onCreated={refresh} />
 
         <section className="streams">
-          <h2>Streams</h2>
+          <div>
+            <div className="section-head">
+              <h2>Streams</h2>
+              <span className="count">
+                {String(streams.length).padStart(3, '0')} REC
+              </span>
+            </div>
+            <div className="rule" />
+          </div>
           {error && <p className="error">{error}</p>}
-          {!loaded && <p className="muted">Loading…</p>}
+          {!loaded && <p className="readout">LOADING…</p>}
           {loaded && streams.length === 0 && !error && (
-            <p className="muted">No streams yet. Upload a file to make one.</p>
+            <p className="readout">
+              NO STREAMS. UPLOAD A FILE TO MAKE ONE.
+              <span className="caret">█</span>
+            </p>
           )}
           {streams.map((stream) => (
             <StreamCard key={stream.id} stream={stream} onChanged={refresh} />

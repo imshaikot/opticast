@@ -6,7 +6,20 @@
     <base href="/" />
 
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0904" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
+    <!--
+      Press Start 2P is the pixel display face, VT323 the terminal face.
+      Both degrade to the platform monospace if the CDN is unreachable, which
+      keeps the dashboard usable offline — it just stops looking like 1983.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
