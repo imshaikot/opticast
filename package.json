@@ -9,6 +9,7 @@
     "scanner": "cd packages/scanner && EXPO_NO_METRO_WORKSPACE_ROOT=1 yarn expo start",
     "scanner:prebuild": "nx prebuild scanner --platform ios --clean",
     "scanner:ios": "nx run-ios scanner --args=\"--device\"",
+    "scanner:ios:release": "cd packages/scanner && EXPO_NO_METRO_WORKSPACE_ROOT=1 npx expo run:ios --device --configuration Release",
     "scanner:build:dev": "nx build scanner --platform ios --profile development",
     "scanner:build:preview": "nx build scanner --platform ios --profile preview",
     "scanner:build": "nx build scanner --platform ios --profile production",
