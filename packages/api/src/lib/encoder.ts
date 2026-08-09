@@ -13,7 +13,7 @@ import {
 
 import { probeMedia, requireFfmpeg } from './ffmpeg.js';
 import { barcodeColors } from './palette.js';
-import { planQr, planScale, renderQrPng } from './qr.js';
+import { planQr, planScale, renderQrPng, type ScalePlan } from './qr.js';
 import type { StreamStore } from './store.js';
 
 const PROGRESS_EVERY_FRAMES = 25;
@@ -171,12 +171,72 @@ interface RenderInput {
   onProgress: (framesRendered: number) => void;
 }
 
-async function renderToVideo(input: RenderInput): Promise<void> {
-  const { sequence, scalePlan, fps, outputPath } = input;
-  const ffmpeg = await requireFfmpeg();
-  const perFrame = scalePlan.tile * scalePlan.tile;
+/**
+ * The bad-TV look. Every effect is luminance-safe by construction: decoders
+ * binarize on luma with a local threshold, so chroma is free to bleed
+ * (`chromashift`, chroma-heavy `noise`) and luma may only be *modulated* —
+ * thin scanlines, low-amplitude snow, a soft additive hum bar, a gentle
+ * vignette — never geometrically displaced or blurred, which is what actually
+ * kills a barcode. Amplitudes were chosen against the driver's `sweep`
+ * (near/mid/far shares within noise of a clean render; see the constants'
+ * limits below) — re-run it before turning any of these up.
+ *
+ * The chain runs between the upscale and the `pad`, so the border stays pure
+ * white: the driver's content-box detection and the bezel look both depend on
+ * that. The hum bar starts fully off-screen at t=0 for the same reason — the
+ * box is measured on the first frame.
+ */
+const TV_LOOK = {
+  /** Chroma-plane shift in px. Luma untouched, so any value scans; keep it a
+   * fringe, not a smear. */
+  chromaShiftPx: 6,
+  /** 1px dark line per module row (the period is `moduleSize`, so the raster
+   * sits on the module grid and cannot beat against it under downscale — a
+   * module is a fat CRT pixel). Opacity is the scan-relevant knob: it
+   * subtracts straight from the light-module margin. */
+  scanlineOpacity: 0.12,
+  /** Temporal uniform noise, 0-100. Luma amplitude is what erodes decode
+   * margin (measurably, even at 3), so the "snow" lives entirely in chroma,
+   * which decoders discard. */
+  lumaNoise: 0,
+  /** High because yuv420p subsampling and x264's chroma smoothing eat most
+   * of it; this is what's left after they do. */
+  chromaNoise: 36,
+  /** Peak alpha of the additive hum bar — worst-case local contrast loss. */
+  humBarAlpha: 0.13,
+  /** Chroma-only gain. Makes the snow and the fringing read on screen, and
+   * leans on the palette's hue drift. Luma untouched. */
+  saturation: 1.25,
+  /** Bar height and sweep period as fractions of the screen side / seconds. */
+  humBarHeightFrac: 1 / 7,
+  humBarPeriodSec: 3.5,
+  /** Vignette angle. Corner luma falloff is cos^4 of this — PI/14 costs ~9%
+   * at the extreme corners, where the corner finder patterns live. */
+  vignetteAngle: 'PI/14',
+  /** Brightness flicker amplitude (of full scale) and frequency. */
+  flickerAmplitude: 0.015,
+  flickerHz: 0.7,
+};
 
-  const filter = [
+function tvLookEnabled(): boolean {
+  // Escape hatch for measurement: attribute a decode-rate change to the look
+  // itself by re-encoding with OPTICAST_VIDEO_LOOK=clean.
+  return process.env.OPTICAST_VIDEO_LOOK !== 'clean';
+}
+
+/** The lavfi source for the hum bar: a soft-edged warm-white band, alpha
+ * shaped by a raised cosine so the overlay has no hard edge to alias. */
+function humBarSource(scalePlan: ScalePlan, fps: number): string {
+  const barH = Math.round(scalePlan.scaledSide * TV_LOOK.humBarHeightFrac);
+  return [
+    `color=c=white:s=${scalePlan.scaledSide}x${barH}:r=${fps}`,
+    'format=rgba',
+    `geq=r=255:g=244:b=224:a='${TV_LOOK.humBarAlpha}*255*(0.5-0.5*cos(2*PI*Y/${barH}))'`,
+  ].join(',');
+}
+
+function buildFilterGraph(scalePlan: ScalePlan, fps: number): string[] {
+  const upscale = [
     // Runs before any upscale, so the grid stays on the module grid. `color`
     // must be set: the default fills unused cells with black, which a detector
     // reads as a dark blob beside the codes.
@@ -185,8 +245,49 @@ async function renderToVideo(input: RenderInput): Promise<void> {
       : []),
     // Integer nearest-neighbour keeps module edges sharp.
     `scale=${scalePlan.scaledSide}:${scalePlan.scaledSide}:flags=neighbor`,
-    `pad=${scalePlan.outputSide}:${scalePlan.outputSide}:(ow-iw)/2:(oh-ih)/2:white`,
+  ];
+  const pad = `pad=${scalePlan.outputSide}:${scalePlan.outputSide}:(ow-iw)/2:(oh-ih)/2:white`;
+
+  if (!tvLookEnabled()) {
+    return ['-vf', [...upscale, pad].join(',')];
+  }
+
+  const barH = Math.round(scalePlan.scaledSide * TV_LOOK.humBarHeightFrac);
+  const sweep = scalePlan.scaledSide + barH;
+  const barSpeed = (sweep / TV_LOOK.humBarPeriodSec).toFixed(2);
+
+  const screen = [
+    ...upscale,
+    // Full-resolution chroma while the analog effects run; the output's
+    // yuv420p subsampling happens once, at the end.
+    'format=yuv444p',
+    `chromashift=cbh=${TV_LOOK.chromaShiftPx}:crh=-${TV_LOOK.chromaShiftPx}`,
+    `drawgrid=w=iw:h=${Math.max(2, scalePlan.moduleSize)}:t=1:c=black@${TV_LOOK.scanlineOpacity}`,
+    // Seeded so re-rendering a stream produces identical frames — and so a
+    // sweep A/B measures the effect, not the noise filter's RNG.
+    `noise=all_seed=97:c0s=${TV_LOOK.lumaNoise}:c0f=t+u:c1s=${TV_LOOK.chromaNoise}:c1f=t+u:c2s=${TV_LOOK.chromaNoise}:c2f=t+u`,
   ].join(',');
+
+  const composite = [
+    // `mod` keeps the bar cycling; `- barH` starts it fully off-screen.
+    `overlay=x=0:y='mod(t*${barSpeed},${sweep})-${barH}':shortest=1`,
+    'format=yuv444p',
+    `vignette=a=${TV_LOOK.vignetteAngle}`,
+    `eq=brightness='${TV_LOOK.flickerAmplitude}*sin(2*PI*${TV_LOOK.flickerHz}*t)':saturation=${TV_LOOK.saturation}:eval=frame`,
+    pad,
+  ].join(',');
+
+  return [
+    '-filter_complex',
+    `[0:v]${screen}[screen];[screen][1:v]${composite}[out]`,
+    '-map', '[out]',
+  ];
+}
+
+async function renderToVideo(input: RenderInput): Promise<void> {
+  const { sequence, scalePlan, fps, outputPath } = input;
+  const ffmpeg = await requireFfmpeg();
+  const perFrame = scalePlan.tile * scalePlan.tile;
 
   const child = spawn(
     ffmpeg,
@@ -199,7 +300,10 @@ async function renderToVideo(input: RenderInput): Promise<void> {
       // arrive that much faster to land on the requested fps.
       '-framerate', String(fps * perFrame),
       '-i', 'pipe:0',
-      '-vf', filter,
+      ...(tvLookEnabled()
+        ? ['-f', 'lavfi', '-i', humBarSource(scalePlan, fps)]
+        : []),
+      ...buildFilterGraph(scalePlan, fps),
       '-r', String(fps),
       '-c:v', 'libx264',
       '-preset', 'veryfast',
