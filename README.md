@@ -1,4 +1,4 @@
-# opticast
+# Opticast
 
 Turn any file into a video of encrypted 2D barcodes, play it on one screen,
 point a phone at it, and get the file back.
@@ -13,6 +13,8 @@ file ──▶ AES-256-GCM ──▶ chunks ──▶ QR frames ──▶ ffmpeg
                                                                 │
 file ◀── verify SHA-256 ◀── decrypt ◀── reassemble ◀── camera ◀──┘
 ```
+
+https://github.com/user-attachments/assets/18d9d418-629c-4fa4-90a2-f814291e65ad
 
 ## Packages
 
